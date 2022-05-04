@@ -1,0 +1,2 @@
+[workspace]
+members = ["datastore", "datastore_derive"]

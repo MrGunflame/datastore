@@ -1,13 +1,29 @@
 use async_trait::async_trait;
 
+pub use datastore_derive::StoreData;
+
 #[async_trait]
 pub trait Store: Sized + Send + Sync {
     type DataStore: Store;
 
     type Error;
 
+    /// Connects to the store using the given uri.
     async fn connect(uri: &str) -> Result<Self, Self::Error>;
 
+    /// Initializes the store for storing data of the type `T`. If `create` was not called before
+    /// calling [`delete`], [`get`], [`get_all`], [`get_one`] or [`insert`] on the store, the
+    /// operation might fail.
+    ///
+    /// Note: Calling `create` might not be required for all store types. Calling `create` on a
+    /// store that does not require this call or has already initialized for storing `T` should not
+    /// fail.
+    ///
+    /// [`delete`]: Self::delete
+    /// [`get`]: Self::get
+    /// [`get_all`]: Self::get_all
+    /// [`get_one`]: Self::get_one
+    /// [`insert`]: Self::insert
     async fn create<T, D>(&self, descriptor: D) -> Result<(), Self::Error>
     where
         T: StoreData<Self::DataStore> + Send + Sync + 'static,
@@ -144,9 +160,7 @@ where
 
     fn write_str(&mut self, v: &str) -> Result<(), Self::Error>;
 
-    fn write_struct<T>(&mut self, v: T) -> Result<(), Self::Error>;
-
-    fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<(), Self::Error>
+    fn write_field<T>(&mut self, key: &'static str, value: &T) -> Result<(), Self::Error>
     where
         T: ?Sized + Write<S>;
 }
@@ -181,10 +195,6 @@ where
 
     fn read_string(&mut self) -> Result<String, Self::Error>;
 
-    fn read_struct<T>(&mut self) -> Result<T, Self::Error>
-    where
-        T: Sized + Read<S>;
-
     fn read_field<T>(&mut self, key: &'static str) -> Result<T, Self::Error>
     where
         T: Sized + Read<S>;
@@ -213,10 +223,6 @@ where
 
     fn write_bytes(&mut self) -> Result<(), Self::Error>;
     fn write_str(&mut self) -> Result<(), Self::Error>;
-
-    fn write_struct<T>(&mut self) -> Result<(), Self::Error>
-    where
-        T: ?Sized + Write<S>;
 
     fn write_field<T>(&mut self, key: &'static str) -> Result<(), Self::Error>
     where

@@ -6,4 +6,6 @@ description = "A generic store wrapper"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
+datastore_derive = { version = "0.1.0", path = "../datastore_derive" }
+
 async-trait = "0.1.53"

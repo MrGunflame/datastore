@@ -53,14 +53,17 @@ fn expand_storedata_impl(ident: &Ident, idents: &[Ident], types: &[Type]) -> Tok
         }
     });
 
+    let descriptor_ident = Ident::new(&format!("{}Descriptor", ident), Span::call_site());
+    let query_ident = Ident::new(&format!("{}Query", ident), Span::call_site());
+
     quote! {
         impl<T> ::datastore::StoreData<T> for #ident
         where
             T: ::datastore::Store,
             #trait_bounds
         {
-            type DataDescriptor = ();
-            type DataQuery = ();
+            type Descriptor = #descriptor_ident;
+            type Query = #query_ident;
 
             fn write<W>(&self, writer: &mut W) -> ::std::result::Result<(), W::Error>
             where
@@ -71,9 +74,9 @@ fn expand_storedata_impl(ident: &Ident, idents: &[Ident], types: &[Type]) -> Tok
                 ::std::result::Result::Ok(())
             }
 
-            fn read_impl<R>(&self, reader: &mut R) -> ::std::result::Result<Self, D::Error>
+            fn read<R>(reader: &mut R) -> ::std::result::Result<Self, R::Error>
             where
-                D: ::datastore::Reader<T>
+                R: ::datastore::Reader<T>
             {
                 #(#read_impl)*
 
@@ -99,6 +102,8 @@ fn expand_datadescriptor_impl(ident: &Ident, idents: &[Ident], types: &[Type]) -
         }
     });
 
+    let name = ident.to_string();
+
     quote! {
         #[derive(Copy, Clone, Debug, Default)]
         pub struct #datadescriptor_ident;
@@ -108,6 +113,10 @@ fn expand_datadescriptor_impl(ident: &Ident, idents: &[Ident], types: &[Type]) -
             T: ::datastore::Store,
             #trait_bounds
         {
+            fn name(&self) -> &str {
+                #name
+            }
+
             fn write<W>(&self, writer: &mut W) -> ::std::result::Result<(), W::Error>
             where
                 W: ::datastore::TypeWriter<T>

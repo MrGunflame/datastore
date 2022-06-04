@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 
+#[cfg(feature = "derive")]
 pub use datastore_derive::StoreData;
 
 #[async_trait]

@@ -1,11 +1,20 @@
 [package]
 name = "datastore"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
+
 description = "A generic store wrapper"
+
+authors = ["MrGunflame <mrgunflame@protonmail.com>"]
 license = "MIT OR Apache-2.0"
 
+publish = true
+
+[features]
+default = []
+derive = ["datastore_derive"]
+
 [dependencies]
-datastore_derive = { version = "0.1.0", path = "../datastore_derive" }
+datastore_derive = { version = "0.1.0", path = "../datastore_derive", optional = true }
 
 async-trait = "0.1.53"

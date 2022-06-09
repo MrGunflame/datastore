@@ -113,7 +113,7 @@ fn expand_datadescriptor_impl(ident: &Ident, idents: &[Ident], types: &[Type]) -
             T: ::datastore::Store,
             #trait_bounds
         {
-            fn name(&self) -> &str {
+            fn ident(&self) -> &str {
                 #name
             }
 

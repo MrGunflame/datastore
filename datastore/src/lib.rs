@@ -31,9 +31,10 @@ pub trait Store: Sized + Send + Sync {
         D: DataDescriptor<T, Self::DataStore> + Send + Sync;
 
     /// Deletes all items `T` matching the query `Q` from the store.
-    async fn delete<T, Q>(&self, query: Q) -> Result<(), Self::Error>
+    async fn delete<T, D, Q>(&self, descriptor: D, query: Q) -> Result<(), Self::Error>
     where
         T: StoreData<Self::DataStore> + Send + Sync + 'static,
+        D: DataDescriptor<T, Self::DataStore> + Send,
         Q: DataQuery<T, Self::DataStore> + Send;
 
     /// Returns all items `T` matching the query `Q` from the store. If no matching items are

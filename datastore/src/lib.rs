@@ -62,9 +62,10 @@ pub trait Store: Sized + Send + Sync {
         Q: DataQuery<T, Self::DataStore> + Send;
 
     /// Inserts a new item `T` into the store.
-    async fn insert<T>(&self, data: T) -> Result<(), Self::Error>
+    async fn insert<T, D>(&self, descriptor: D, data: T) -> Result<(), Self::Error>
     where
-        T: StoreData<Self::DataStore> + Send + Sync + 'static;
+        T: StoreData<Self::DataStore> + Send + Sync + 'static,
+        D: DataDescriptor<T, Self::DataStore> + Send;
 }
 
 pub trait StoreExt<S>
@@ -112,7 +113,7 @@ where
     T: StoreData<S>,
     S: Store,
 {
-    fn name(&self) -> &str;
+    fn ident(&self) -> &str;
 
     fn write<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
@@ -135,32 +136,46 @@ where
 {
     type Error;
 
+    /// Writes a `bool` value.
     fn write_bool(&mut self, v: bool) -> Result<(), Self::Error>;
 
+    /// Writes a `i8` value.
     fn write_i8(&mut self, v: i8) -> Result<(), Self::Error>;
 
+    /// Writes a `i16` value.
     fn write_i16(&mut self, v: i16) -> Result<(), Self::Error>;
 
+    /// Writes a `i32` value.
     fn write_i32(&mut self, v: i32) -> Result<(), Self::Error>;
 
+    /// Writes a `i64` value.
     fn write_i64(&mut self, v: i64) -> Result<(), Self::Error>;
 
+    /// Writes a `u8` value.
     fn write_u8(&mut self, v: u8) -> Result<(), Self::Error>;
 
+    /// Writes a `u16` value.
     fn write_u16(&mut self, v: u16) -> Result<(), Self::Error>;
 
+    /// Writes a `u32` value.
     fn write_u32(&mut self, v: u32) -> Result<(), Self::Error>;
 
+    /// Writes a `u64` value.
     fn write_u64(&mut self, v: u64) -> Result<(), Self::Error>;
 
+    /// Writes a `f32` value.
     fn write_f32(&mut self, v: f32) -> Result<(), Self::Error>;
 
+    /// Writes a `f64` value.
     fn write_f64(&mut self, v: f64) -> Result<(), Self::Error>;
 
+    /// Writes a raw byte slice.
     fn write_bytes(&mut self, v: &[u8]) -> Result<(), Self::Error>;
 
+    /// Writes a `&str`.
     fn write_str(&mut self, v: &str) -> Result<(), Self::Error>;
 
+    /// Writes a field with the key `key` and the value `T`.
     fn write_field<T>(&mut self, key: &'static str, value: &T) -> Result<(), Self::Error>
     where
         T: ?Sized + Write<S>;
@@ -193,6 +208,8 @@ where
     fn read_f32(&mut self) -> Result<f32, Self::Error>;
 
     fn read_f64(&mut self) -> Result<f64, Self::Error>;
+
+    fn read_byte_buf(&mut self) -> Result<Vec<u8>, Self::Error>;
 
     fn read_string(&mut self) -> Result<String, Self::Error>;
 

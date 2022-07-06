@@ -1,15 +1,26 @@
+use std::error::Error as StdError;
+
 use async_trait::async_trait;
 
 #[cfg(feature = "derive")]
 pub use datastore_derive::StoreData;
 
+/// A store for associated [`StoreData`] types.
 #[async_trait]
 pub trait Store: Sized + Send + Sync {
+    /// The inner store used by this store. This is mainly useful for wrapping stores while
+    /// keeping the same requirements for the types. For most stores this should be `Self`.
     type DataStore: Store;
 
-    type Error;
+    /// The Error type returned by the methods of this store.
+    type Error: StdError;
 
     /// Connects to the store using the given uri.
+    ///
+    /// This method is defined as:
+    /// ```ignore
+    /// async fn connect(uri: &str) -> Result<Self, Self::Error>;
+    /// ```
     async fn connect(uri: &str) -> Result<Self, Self::Error>;
 
     /// Initializes the store for storing data of the type `T`. If `create` was not called before
@@ -19,6 +30,14 @@ pub trait Store: Sized + Send + Sync {
     /// Note: Calling `create` might not be required for all store types. Calling `create` on a
     /// store that does not require this call or has already initialized for storing `T` should not
     /// fail.
+    ///
+    /// This method is defined as:
+    /// ```ignore
+    /// async fn create<T, D>(&self, descriptor: D) -> Result<(), Self::Error>
+    /// where
+    ///     T: StoreData<Self::DataStore> + Send + Sync + 'static,
+    ///     D: DataDescriptor<T, Self::DataStore> + Send + Sync;
+    /// ```
     ///
     /// [`delete`]: Self::delete
     /// [`get`]: Self::get
@@ -31,6 +50,15 @@ pub trait Store: Sized + Send + Sync {
         D: DataDescriptor<T, Self::DataStore> + Send + Sync;
 
     /// Deletes all items `T` matching the query `Q` from the store.
+    ///
+    /// This method is defined as:
+    /// ```ignore
+    /// async fn delete<T, D, Q>(&self, descriptor: D, query: Q) -> Result<(), Self::Error>
+    /// where
+    ///     T: StoreData<Self::DataStore> + Send + Sync + 'static,
+    ///     D: DataDescriptor<T, Self::DataStore> + Send,
+    ///     Q: DataQuery<T, Self::DataStore> + Send;
+    /// ```
     async fn delete<T, D, Q>(&self, descriptor: D, query: Q) -> Result<(), Self::Error>
     where
         T: StoreData<Self::DataStore> + Send + Sync + 'static,
@@ -39,6 +67,15 @@ pub trait Store: Sized + Send + Sync {
 
     /// Returns all items `T` matching the query `Q` from the store. If no matching items are
     /// found an empty [`Vec`] is returned.
+    ///
+    /// This method is defined as:
+    /// ```ignore
+    /// async fn get<T, D, Q>(&self, descriptor: D, query: Q) -> Result<Vec<T>, Self::Error>
+    /// where
+    ///     T: StoreData<Self::DataStore> + Send + Sync + 'static,
+    ///     D: DataDescriptor<T, Self::DataStore> + Send,
+    ///     Q: DataQuery<T, Self::DataStore> + Send;
+    /// ```
     async fn get<T, D, Q>(&self, descriptor: D, query: Q) -> Result<Vec<T>, Self::Error>
     where
         T: StoreData<Self::DataStore> + Send + Sync + 'static,
@@ -46,6 +83,14 @@ pub trait Store: Sized + Send + Sync {
         Q: DataQuery<T, Self::DataStore> + Send;
 
     /// Returns all items `T` from the store. If no items are found an empty [`Vec`] is returned.
+    ///
+    /// This method is defined as:
+    /// ```ignore
+    /// async fn get_all<T, D>(&self, descriptor: D) -> Result<Vec<T>, Self::Error>
+    /// where
+    ///     T: StoreData<Self::DataStore> + Send + Sync + 'static,
+    ///     D: DataDescriptor<T, Self::DataStore> + Send + Sync;
+    /// ```
     async fn get_all<T, D>(&self, descriptor: D) -> Result<Vec<T>, Self::Error>
     where
         T: StoreData<Self::DataStore> + Send + Sync + 'static,
@@ -56,6 +101,14 @@ pub trait Store: Sized + Send + Sync {
     ///
     /// Note: There is no guarantee on the item order. Calling `get_one` multiple times with the
     /// same query might return different items on the same store.
+    ///
+    /// This method is defined as:
+    /// ```ignore
+    /// async fn get_one(&self, descriptor: D, query: Q) -> Result<Option<T>, Self::Error>
+    /// where
+    ///     T: StoreData<Self::DataStore> + Send + Sync + 'static,
+    ///     D: DataDescriptor<T, Self::DataStore> + Send,
+    ///     Q: DataQuery<T, Self::DataStore> + Send;
     async fn get_one<T, D, Q>(&self, descriptor: D, query: Q) -> Result<Option<T>, Self::Error>
     where
         T: StoreData<Self::DataStore> + Send + Sync + 'static,
@@ -63,16 +116,27 @@ pub trait Store: Sized + Send + Sync {
         Q: DataQuery<T, Self::DataStore> + Send;
 
     /// Inserts a new item `T` into the store.
+    ///
+    /// This method is defined as:
+    /// ```ignore
+    /// async fn insert(&self, descriptor: D, data: T) -> Result<(), Self::Error>
+    /// where
+    ///     T: StoreData<Self::DataStore> + Send + Sync + 'static,
+    ///     D: DataDescriptor<T, Self::DataStore> + Send;
+    /// ```
     async fn insert<T, D>(&self, descriptor: D, data: T) -> Result<(), Self::Error>
     where
         T: StoreData<Self::DataStore> + Send + Sync + 'static,
         D: DataDescriptor<T, Self::DataStore> + Send;
 }
 
+/// An extension trait for [`Store`].
 pub trait StoreExt<S>
 where
     S: Store,
 {
+    /// Creates a new [`DataDescriptor`] for the [`StoreData`] type `T` if `T::Descriptor`
+    /// implements [`Default`].
     fn descriptor<T>(&self) -> T::Descriptor
     where
         T: StoreData<S::DataStore>,
@@ -93,6 +157,7 @@ where
     }
 }
 
+/// A structured datatype that can be stored in the [`Store`] `S`.
 pub trait StoreData<S>: Sized
 where
     S: Store,
@@ -100,32 +165,44 @@ where
     type Descriptor: DataDescriptor<Self, S>;
     type Query: DataQuery<Self, S>;
 
+    /// Serializes the `StoreData` into the [`Writer`].
     fn write<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
         W: Writer<S>;
 
+    /// Deserializes a new `StoreData` object from the [`Reader`].
     fn read<R>(reader: &mut R) -> Result<Self, R::Error>
     where
         R: Reader<S>;
 }
 
+/// A descriptor for a [`StoreData`] type.
+///
+/// `DataDescriptor` describes the format of the associated [`StoreData`] type `S` without
+/// containing any data itself.
 pub trait DataDescriptor<T, S>
 where
     T: StoreData<S>,
     S: Store,
 {
+    /// Returns the identifier of the data `S`.
     fn ident(&self) -> &str;
 
+    /// Serializes the format of `S` into the [`TypeWriter`].
     fn write<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
         W: TypeWriter<S>;
 }
 
+/// A query type for an associated [`StoreData`] type.
+///
+/// `DataQuery` is used to filter a [`StoreData`] type.
 pub trait DataQuery<T, S>
 where
     T: StoreData<S>,
     S: Store,
 {
+    /// Serializes the query into the [`Writer`].
     fn write<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
         W: Writer<S>;

@@ -1,9 +1,24 @@
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
-use syn::{parse_macro_input, Data, DeriveInput, Fields, Ident, Type};
+use syn::parse::{Parse, ParseStream};
+use syn::{
+    parenthesized, parse_macro_input, Data, DeriveInput, Expr, Fields, Ident, Lit, Result, Token,
+    Type,
+};
 
 pub fn expand_macro(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
+
+    // Parse global attributes
+    let mut attrs = Attrs::new();
+    for attr in input.attrs {
+        if let Some(ident) = attr.path.get_ident() {
+            if ident == "datastore" {
+                let tokens = attr.tokens.into();
+                attrs.push(parse_macro_input!(tokens as Attr));
+            }
+        }
+    }
 
     let mut types = Vec::new();
     let mut idents = Vec::new();
@@ -22,7 +37,7 @@ pub fn expand_macro(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     }
 
     let storedata = expand_storedata_impl(&input.ident, &idents, &types);
-    let descriptor = expand_datadescriptor_impl(&input.ident, &idents, &types);
+    let descriptor = expand_datadescriptor_impl(&input.ident, &idents, &types, attrs.name());
     let query = expand_dataquery_impl(&input.ident, &idents, &types);
 
     let expanded = quote! {
@@ -88,7 +103,12 @@ fn expand_storedata_impl(ident: &Ident, idents: &[Ident], types: &[Type]) -> Tok
     }
 }
 
-fn expand_datadescriptor_impl(ident: &Ident, idents: &[Ident], types: &[Type]) -> TokenStream {
+fn expand_datadescriptor_impl(
+    ident: &Ident,
+    idents: &[Ident],
+    types: &[Type],
+    name: Option<String>,
+) -> TokenStream {
     let trait_bounds = expand_trait_bounds(types);
 
     let datadescriptor_ident = Ident::new(&format!("{}Descriptor", ident), Span::call_site());
@@ -102,7 +122,10 @@ fn expand_datadescriptor_impl(ident: &Ident, idents: &[Ident], types: &[Type]) -
         }
     });
 
-    let name = ident.to_string();
+    let name = match name {
+        Some(name) => name,
+        _ => ident.to_string(),
+    };
 
     quote! {
         #[derive(Copy, Clone, Debug, Default)]
@@ -198,5 +221,58 @@ fn expand_trait_bounds(types: &[Type]) -> TokenStream {
         #(
             #bounds: ::datastore::Write<T> + ::datastore::Read<T>,
         )*
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum Attr {
+    Name(String),
+}
+
+impl Parse for Attr {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let content;
+        parenthesized!(content in input);
+
+        let key = content.parse::<Ident>()?;
+        content.parse::<Token![=]>()?;
+        let val = content.parse::<Expr>()?;
+
+        match key {
+            arg if arg == "name" => {
+                // Only accept a LitStr.
+                match val {
+                    Expr::Lit(lit) => match lit.lit {
+                        Lit::Str(lit) => Ok(Self::Name(lit.value())),
+                        _ => Err(input.error("the name attribute only accepts a string literal")),
+                    },
+                    _ => Err(input.error("the name attribute only accepts a string literal")),
+                }
+            }
+            _ => Err(input.error(format!("unknwon attribute {}", key))),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct Attrs(Vec<Attr>);
+
+impl Attrs {
+    fn new() -> Self {
+        Self(Vec::new())
+    }
+
+    fn push(&mut self, attr: Attr) {
+        self.0.push(attr);
+    }
+
+    fn name(&self) -> Option<String> {
+        self.0
+            .iter()
+            .find(|attr| matches!(attr, Attr::Name(_)))
+            .map(|attr| match attr {
+                Attr::Name(name) => name,
+            })
+            .cloned()
     }
 }

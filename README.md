@@ -1,5 +1,8 @@
 # datastore
 
+[![Crates.io](https://img.shields.io/crates/v/datastore)](https://crates.io/crates/datastore)
+[![Docs.rs](https://img.shields.io/docsrs/datastore/latest)](https://docs.rs/datastore)
+
 A framework for generically storing data inside stores.
 
 ## Usage

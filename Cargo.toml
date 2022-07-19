@@ -1,2 +1,2 @@
 [workspace]
-members = ["datastore", "datastore_derive"]
+members = ["datastore", "datastore_derive", "datastore-test"]

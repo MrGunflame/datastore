@@ -1,0 +1,13 @@
+[package]
+name = "datastore-test"
+version = "0.0.0"
+edition = "2021"
+
+publish = false
+
+[dependencies]
+datastore = { version = "*", path = "../datastore", features = ["derive"] }
+
+[dev-dependencies]
+datastore = { version = "*", path = "../datastore", features = ["derive"] }
+async-trait = "0.1.56"

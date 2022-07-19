@@ -1,9 +1,56 @@
-use std::error::Error as StdError;
+//! # datastore
+//!
+//! A framework for generically storing data inside stores.
+//!
+//! ## The `StoreData` macro
+//!
+//! The `StoreData` macro can automatically create a [`StoreData`] implementation on a type.
+//! Note that currently only structs are supported.
+//!
+//! ### Container attributes
+//!
+//! - `#[datastore(name = "name")]`
+//!
+//! Change the unique identifier of the data to the specified `name`. By default the name is
+//! inferred by the local identifier of the type.
+//!
+//! ###### Examples
+//!
+//! ```
+//! # use datastore::StoreData;
+//! /// name == "Person"
+//! #[derive(StoreData)]
+//! struct Person {
+//!     id: i64,
+//!     name: String,
+//! }
+//! ```
+//!
+//! ```
+//! # use datastore::StoreData;
+//! /// name == "people"
+//! #[derive(StoreData)]
+//! #[datastore(name = "people")]
+//! struct Person {
+//!     id: i64,
+//!     name: String,
+//! }
+//! ```
+//!
+use std::{error::Error as StdError, fmt::Display};
 
 use async_trait::async_trait;
 
 #[cfg(feature = "derive")]
 pub use datastore_derive::StoreData;
+
+/// An error that can occur when reading or writing a type from a [`Store`].
+pub trait Error: StdError {
+    /// Creates a new custom `Error` with the given `msg`.
+    fn custom<T>(msg: T) -> Self
+    where
+        T: Display;
+}
 
 /// A store for associated [`StoreData`] types.
 #[async_trait]
@@ -13,7 +60,7 @@ pub trait Store: Sized + Send + Sync {
     type DataStore: Store;
 
     /// The Error type returned by the methods of this store.
-    type Error: StdError;
+    type Error: Error;
 
     /// Connects to the store using the given uri.
     ///

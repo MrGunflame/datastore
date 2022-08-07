@@ -190,10 +190,12 @@ where
         T::Descriptor: Default;
 }
 
+/// Extension trait for [`Store`].
 impl<S> StoreExt<S> for S
 where
     S: Store,
 {
+    /// Returns a new default `Descriptor` for the [`StoreData`] type `T`.
     #[inline]
     fn descriptor<T>(&self) -> T::Descriptor
     where
@@ -255,6 +257,7 @@ where
         W: Writer<S>;
 }
 
+/// A value write for the [`Store`] `S`.
 pub trait Writer<S>
 where
     S: Store,
@@ -306,89 +309,136 @@ where
         T: ?Sized + Write<S>;
 }
 
+/// A value reader for [`Store`] `S`.
 pub trait Reader<S>
 where
     S: Store,
 {
     type Error;
 
+    /// Reads a `bool` value from the `Reader`.
     fn read_bool(&mut self) -> Result<bool, Self::Error>;
 
+    /// Reads an `i8` value from the `Reader`.
     fn read_i8(&mut self) -> Result<i8, Self::Error>;
 
+    /// Reads an `i16` value from the `Reader`.
     fn read_i16(&mut self) -> Result<i16, Self::Error>;
 
+    /// Reads an `i32` value from the `Reader`.
     fn read_i32(&mut self) -> Result<i32, Self::Error>;
 
+    /// Reads an `i64` value from the `Reader`.
     fn read_i64(&mut self) -> Result<i64, Self::Error>;
 
+    /// Reads an `u8` value from the `Reader`.
     fn read_u8(&mut self) -> Result<u8, Self::Error>;
 
+    /// Reads an `u16` value from the `Reader`.
     fn read_u16(&mut self) -> Result<u16, Self::Error>;
 
+    /// Reads an `u32` value from the `Reader`.
     fn read_u32(&mut self) -> Result<u32, Self::Error>;
 
+    /// Reads an `u64` value from the `Reader`.
     fn read_u64(&mut self) -> Result<u64, Self::Error>;
 
+    /// Reads an `f32` value from the `Reader`.
     fn read_f32(&mut self) -> Result<f32, Self::Error>;
 
+    /// Reads an `f64` value from the `Reader`.
     fn read_f64(&mut self) -> Result<f64, Self::Error>;
 
+    /// Read an owned `Vec<u8>` from the `Reader`.
     fn read_byte_buf(&mut self) -> Result<Vec<u8>, Self::Error>;
 
+    /// Read an owned `String` from the `Reader`.
     fn read_string(&mut self) -> Result<String, Self::Error>;
 
+    /// Reads the field with the given `key` and the value `T` from the `Reader`.
     fn read_field<T>(&mut self, key: &'static str) -> Result<T, Self::Error>
     where
         T: Sized + Read<S>;
 }
 
+/// A writer for field types.
+///
+/// Unlike the regular [`Writer`], a `TypeWriter` only requires the types of the fields of the
+/// [`StoreData`]. This is used by [`DataDescriptor`]s to describe a structure without requiring
+/// any data.
 pub trait TypeWriter<S>
 where
     S: Store,
 {
     type Error;
 
+    /// Writes the `bool` type into the `TypeWriter`.
     fn write_bool(&mut self) -> Result<(), Self::Error>;
 
+    /// Writes the `i8` type into the `TypeWriter`.
     fn write_i8(&mut self) -> Result<(), Self::Error>;
+
+    /// Writes the `i16` type into the `TypeWriter`.
     fn write_i16(&mut self) -> Result<(), Self::Error>;
+
+    /// Writes the `i32` type into the `TypeWriter`.
     fn write_i32(&mut self) -> Result<(), Self::Error>;
+
+    /// Writes the `i64` type into the `TypeWriter`.
     fn write_i64(&mut self) -> Result<(), Self::Error>;
 
+    /// Writes the `u8` type into the `TypeWriter`.
     fn write_u8(&mut self) -> Result<(), Self::Error>;
+
+    /// Writes the `u16` type into the `TypeWriter`.
     fn write_u16(&mut self) -> Result<(), Self::Error>;
+
+    /// Writes the `u32` type into the `TypeWriter`.
     fn write_u32(&mut self) -> Result<(), Self::Error>;
+
+    /// Writes the `u64` type into the `TypeWriter`.
     fn write_u64(&mut self) -> Result<(), Self::Error>;
 
+    /// Writes the `f32` type into the `TypeWriter`.
     fn write_f32(&mut self) -> Result<(), Self::Error>;
+
+    /// Writes the `f64` type into the `TypeWriter`.
     fn write_f64(&mut self) -> Result<(), Self::Error>;
 
+    /// Writes the `[u8]` type into the `TypeWriter`.
     fn write_bytes(&mut self) -> Result<(), Self::Error>;
+
+    /// Writes the `str` type into the `TypeWriter`.
     fn write_str(&mut self) -> Result<(), Self::Error>;
 
+    /// Writes a field with the given `key` and type `T` into the `TypeWriter`.
     fn write_field<T>(&mut self, key: &'static str) -> Result<(), Self::Error>
     where
         T: ?Sized + Write<S>;
 }
 
+/// A type that can be written into a field in the [`Store`] `S`.
 pub trait Write<S>
 where
     S: Store,
 {
+    /// Writes the value into the [`Writer`].
     fn write<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where
         W: Writer<S>;
 
+    /// Writes the type of the value into the [`TypeWriter`].
     fn write_type<W>(writer: &mut W) -> Result<(), W::Error>
     where
         W: TypeWriter<S>;
 }
 
+/// A type that can be read from a field in the [`Store`] `S`.
 pub trait Read<S>: Sized
 where
     S: Store,
 {
+    /// Reads the value from the [`Reader`].
     fn read<R>(reader: &mut R) -> Result<Self, R::Error>
     where
         R: Reader<S>;

@@ -16,5 +16,6 @@ derive = ["datastore_derive"]
 
 [dependencies]
 datastore_derive = { version = "0.1.2", path = "../datastore_derive", optional = true }
+asyncsync = "0.2.0"
 
 async-trait = "0.1.53"

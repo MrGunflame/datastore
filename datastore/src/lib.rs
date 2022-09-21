@@ -36,7 +36,8 @@
 //!     name: String,
 //! }
 //! ```
-//!
+pub mod wrapper;
+
 use std::{error::Error as StdError, fmt::Display};
 
 use async_trait::async_trait;
